@@ -9,7 +9,76 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Figures2d\Figures2d.csproj" />
+    <None Remove="Icons\blackcircle32x32.png" />
+    <None Remove="Icons\bluearrows32x32.png" />
+    <None Remove="Icons\bluecircle32x32.png" />
+    <None Remove="Icons\bluefilledcircle32x32.png" />
+    <None Remove="Icons\crossedrectangle32x32.png" />
+    <None Remove="Icons\diamond32x32.png" />
+    <None Remove="Icons\pinkcircle32x32.png" />
+    <None Remove="Icons\pinkdiamond32x32.png" />
+    <None Remove="Icons\pinkstar32x32.png" />
+    <None Remove="Icons\redfatcross32x32.png" />
+    <None Remove="Icons\redlock32x32.png" />
+    <None Remove="Icons\redtangent32x32.png" />
+    <None Remove="Icons\redtangentcircle32x32.png" />
+    <None Remove="Icons\whitecircledcross32x32.png" />
+    <None Remove="Icons\whitestar32x32.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Icons\bluearrows32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\blackcircle32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\bluecircle32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\bluefilledcircle32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\cross32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\crossedrectangle32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\diamond32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\pinkcircle32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\pinkdiamond32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\pinkstar32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\redfatcross32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\redlock32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\redtangent32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\redtangentcircle32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\whitecircledcross32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\whitestar32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
   </ItemGroup>
 
 </Project>

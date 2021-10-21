@@ -11,176 +11,751 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
+using System.Windows.Shapes;
 using Figures2d;
 using PolygonCircleEditor.Figures;
+using PolygonCircleEditor.Rasterizers;
+using PolygonCircleEditor.Signs;
 
 namespace PolygonCircleEditor
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
+
+    public enum CurrentUserModes
+    {
+        Viewing,
+        AddingPoly,
+        AddingCircle,
+        Moving,
+        Removing,
+        Spliting,
+        Other,
+    }
+
     public partial class MainWindow : Window
     {
-        WriteableBitmap _writeableBitmap;
-        Image _image => DisplayImage;
-        PointInt _leftPoint = new PointInt();
-        PointInt _rightPoint = new PointInt();
+        readonly List<Figures.Polygon> _polygons = new();
+        readonly List<Circle> _circles = new();
+        readonly List<PointInt> _addingPoints = new();
+        Ellipse? _firstAddedPoint;
+        readonly ViewModelBitmap _bitmap;
+        readonly IRasterizer _rasterizer;
+        CurrentUserModes _currentUserMode = CurrentUserModes.Viewing;
+        Color _backgroundColor;
+
+        private CurrentUserModes _CurrentUserMode
+        {
+            get => _currentUserMode;
+            set
+            {
+                ClearCanvasAndRedraw();
+                RedrawBitmap();
+                _currentUserMode = value;
+            }
+        }
 
         public MainWindow()
         {
             InitializeComponent();
-
-            PresentationSource source = PresentationSource.FromVisual(this);
-
-            //double dpiX, dpiY;
-            //if (source != null)
-            //{
-            //    dpiX = 96.0 * source.CompositionTarget.TransformToDevice.M11;
-            //    dpiY = 96.0 * source.CompositionTarget.TransformToDevice.M22;
-            //}
-            //else
-            //{
-            //    throw new Exception();
-            //}
-
-            _writeableBitmap = new WriteableBitmap(
-                (int)512,
-                (int)512,
-                96,
-                96,
-                PixelFormats.Bgr32,
-                null);
-
-            //_image = new Image()
-            //{
-            //    Source = _writeableBitmap,
-            //    Stretch = Stretch.None,
-            //    HorizontalAlignment = HorizontalAlignment.Left,
-            //    VerticalAlignment = VerticalAlignment.Top,
-            //};
-
-            DisplayImage.MouseLeftButtonDown += new MouseButtonEventHandler(SetLeft);
-            DisplayImage.MouseRightButtonDown += new MouseButtonEventHandler(SetRightAndDraw);
-
-            DisplayImage.Source = _writeableBitmap;
-
-            var square = new Polygon(new PointInt[]
+            _rasterizer = new BresenhamRasterizer();
+            _bitmap = new ViewModelBitmap((int)MainCanvas.Width, (int)MainCanvas.Height);
+            MainCanvas.Background = new ImageBrush()
             {
-                new PointInt(100, 100),
-                new PointInt(100, 200),
-                new PointInt(200, 200),
-                new PointInt(200, 100),
-            });
+                ImageSource = _bitmap.WriteableBitmap,
+                Stretch = Stretch.None
+            };
+            _backgroundColor = Colors.Gainsboro;
+            AddDefaultShapesToLists();
+            RedrawBitmap();
+        }
 
-            var triangle = new Polygon(new PointInt[]
+        private void AddPoly_Click(object sender, RoutedEventArgs e)
+        {
+            _CurrentUserMode = CurrentUserModes.AddingPoly;
+        }
+
+        private void AddCircle_Click(object sender, RoutedEventArgs e)
+        {
+            _CurrentUserMode = CurrentUserModes.AddingCircle;
+        }
+
+        private void RemovePoints_Click(object sender, RoutedEventArgs e)
+        {
+            _CurrentUserMode = CurrentUserModes.Removing;
+            EnterDeleteMode();
+        }
+
+        private void SetTangentCircle_Click(object sender, RoutedEventArgs e)
+        {
+            _CurrentUserMode = CurrentUserModes.Other;
+            EnterTangentCircleSelectCircleMode();
+        }
+
+        private void SplitPoints_Click(object sender, RoutedEventArgs e)
+        {
+            _CurrentUserMode = CurrentUserModes.Spliting;
+            EnterSplitMode();
+        }
+
+        private void SetEdgeSize_Click(object sender, RoutedEventArgs e)
+        {
+            _CurrentUserMode = CurrentUserModes.Other;
+            EnterSetEdgeLengthMode();
+        }
+
+        private void SetRadiusButton_Click(object sender, RoutedEventArgs e)
+        {
+            _CurrentUserMode = CurrentUserModes.Other;
+            EnterSetRadiusSizeMode();
+        }
+
+        private void EqualEdgeButton_Click(object sender, RoutedEventArgs e)
+        {
+            _CurrentUserMode = CurrentUserModes.Other;
+            EnterEqualSideStage1();
+        }
+
+        private void PerpendicularEdgeButton_Click(object sender, RoutedEventArgs e)
+        {
+            _CurrentUserMode = CurrentUserModes.Other;
+            EnterPerpendicularEdgeStage1Mode();
+        }
+
+        private void MainCanvasMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            switch(_CurrentUserMode)
             {
-                new PointInt(300, 300),
-                new PointInt(350, 350),
-                new PointInt(250, 350),
-            });
+                case CurrentUserModes.AddingCircle:
+                    {
+                        if (e.LeftButton == MouseButtonState.Pressed)
+                            CreateCirclePoint(sender, e);
+                        else if (e.RightButton == MouseButtonState.Pressed)
+                            CancelCreating();
 
-            var rng = new Random();
-
-            var points = new List<PointInt>();
-
-            for(int i = 0; i < rng.Next(3, 20); ++i)
-            {
-                points.Add(new PointInt(rng.Next(512), rng.Next(512)));
+                        break;
+                    }
+                case CurrentUserModes.AddingPoly:
+                    {
+                        if (e.LeftButton == MouseButtonState.Pressed)
+                            CreateFigureAddPoint(sender, e);
+                        else if (e.RightButton == MouseButtonState.Pressed)
+                            CancelCreating();
+                        break;
+                    }
+                case CurrentUserModes.Removing:
+                case CurrentUserModes.Viewing:
+                default:
+                    {
+                        if (e.RightButton == MouseButtonState.Pressed)
+                        {
+                            ClearCanvasAndRedraw();
+                        }
+                        break;
+                    }
             }
-
-            var poly = new Polygon(points);
-
-            square.SplitEdge(0);
-            square.MoveVertex(1, 20, 0);
-            square.SplitEdge(3);
-            square.MoveVertex(4, 20, 0);
-            DrawPolygon(square);
-            //DrawPolygon(poly);
-
-            //DrawLine(new PointInt(511, 511), new PointInt(256, 256));
         }
 
-        void DrawLine(PointInt a, PointInt b)
+
+        private void CreateCirclePoint(object sender, MouseButtonEventArgs e)
         {
-            foreach (var point in PointExtensions.Breline(a, b))
+            Point relativeToMainCanvas = e.GetPosition(MainCanvas);
+
+            if(_addingPoints.Count == 0)
             {
-                DrawPixel(point.X, point.Y);
-            }
-        }
-
-        void DrawPolygon(Figures.Polygon polygon)
-        {
-            for(int i = 0; i < polygon.Points.Count; ++i)
-            {
-                DrawLine(polygon.Points[i], polygon.Points[(i + 1) % polygon.Points.Count]);
-            }
-        }
-
-        void DrawPixelMouse(object sender, MouseButtonEventArgs e)
-        {
-            int x = (int)e.GetPosition(_image).X;
-            int y = (int)e.GetPosition(_image).Y;
-
-            DrawPixel(x, y);
-        }
-
-        void SetLeft(object sender, MouseButtonEventArgs e)
-        {
-            int x = (int)e.GetPosition(_image).X;
-            int y = (int)e.GetPosition(_image).Y;
-
-            _leftPoint.X = x * 2;
-            _leftPoint.Y = y * 2;
-        }
-
-        void SetRightAndDraw(object sender, MouseButtonEventArgs e)
-        {
-            int x = (int)e.GetPosition(_image).X;
-            int y = (int)e.GetPosition(_image).Y;
-
-            _rightPoint.X = x * 2;
-            _rightPoint.Y = y * 2;
-
-            DrawLine(_leftPoint, _rightPoint);
-        }
-
-        // https://docs.microsoft.com/en-us/dotnet/api/system.windows.media.imaging.writeablebitmap?redirectedfrom=MSDN&view=windowsdesktop-5.0
-        void DrawPixel(int x, int y)
-        {
-            int column = x;
-            int row = y;
-
-            try
-            {
-                // Reserve the back buffer for updates.
-                _writeableBitmap.Lock();
-
-                unsafe
+                int dotRadius = 5;
+                _firstAddedPoint = new Ellipse()
                 {
-                    // Get a pointer to the back buffer.
-                    IntPtr pBackBuffer = _writeableBitmap.BackBuffer;
+                    Width = dotRadius * 2,
+                    Height = dotRadius * 2,
+                    Fill = new SolidColorBrush(Colors.Yellow),
+                };
 
-                    // Find the address of the pixel to draw.
-                    pBackBuffer += row * _writeableBitmap.BackBufferStride;
-                    pBackBuffer += column * 4;
+                _addingPoints.Add(new PointInt((int)relativeToMainCanvas.X, (int)relativeToMainCanvas.Y));
 
-                    // Compute the pixel's color.
-                    int color_data = 255 << 16; // R
-                    color_data |= 128 << 8;   // G
-                    color_data |= 255 << 0;   // B
+                // put dot in front
+                Panel.SetZIndex(_firstAddedPoint, 100);
 
-                    // Assign the color data to the pixel.
-                    *((int*)pBackBuffer) = color_data;
-                }
-
-                // Specify the area of the bitmap that changed.
-                _writeableBitmap.AddDirtyRect(new Int32Rect(column, row, 1, 1));
+                // add and place dot at center of a click
+                MainCanvas.Children.Add(_firstAddedPoint);
+                Canvas.SetLeft(_firstAddedPoint, relativeToMainCanvas.X - dotRadius);
+                Canvas.SetTop(_firstAddedPoint, relativeToMainCanvas.Y - dotRadius);
             }
-            finally
+            else
             {
-                // Release the back buffer and make it available for display.
-                _writeableBitmap.Unlock();
+                // Pythagoras theorem
+                int dx = (int)relativeToMainCanvas.X - _addingPoints[0].X;
+                int dy = (int)relativeToMainCanvas.Y - _addingPoints[0].Y;
+
+                uint radius = (uint)Math.Sqrt(dx * dx + dy * dy);
+                var createdCircle = new Circle(_addingPoints[0], radius);
+                _circles.Add(createdCircle);
+
+                var (points, colors) = _rasterizer.DrawCircle(createdCircle, Colors.Black);
+                _bitmap.DrawPixels(points, colors);
+
+                CancelCreating();
             }
+
+        }
+
+        private void CreateFigureAddPoint(object sender, MouseButtonEventArgs e)
+        {
+            Point relativeToMainCanvas = e.GetPosition(MainCanvas);
+            
+            // first add
+            if (_addingPoints.Count == 0)
+            {
+                int dotRadius = 5;
+                _firstAddedPoint = new Ellipse()
+                {
+                    Width = dotRadius * 2,
+                    Height = dotRadius * 2,
+                    Fill = new SolidColorBrush(Colors.Yellow),
+                };
+
+                // set finishing action
+                _firstAddedPoint.MouseLeftButtonDown += OnFirstPoint_Click;
+
+                // put dot in front
+                Panel.SetZIndex(_firstAddedPoint, 100);
+
+                // add and place dot at center of a click
+                MainCanvas.Children.Add(_firstAddedPoint);
+                Canvas.SetLeft(_firstAddedPoint, relativeToMainCanvas.X - dotRadius);
+                Canvas.SetTop(_firstAddedPoint, relativeToMainCanvas.Y - dotRadius);
+            }
+            else
+            {
+                var line = new System.Windows.Shapes.Line()
+                {
+                    X1 = _addingPoints.Last().X,
+                    X2 = relativeToMainCanvas.X,
+                    Y1 = _addingPoints.Last().Y,
+                    Y2 = relativeToMainCanvas.Y,
+                    Stroke = new SolidColorBrush(Colors.Black),
+                    StrokeThickness = 3
+                };
+
+                MainCanvas.Children.Add(line);
+            }
+
+            // every add
+            _addingPoints.Add(new PointInt(
+                (int)relativeToMainCanvas.X, (int)relativeToMainCanvas.Y));
+        }
+
+        private void CancelAddingPoints(object sender, MouseButtonEventArgs e)
+        {
+            CancelCreating();
+        }
+
+        private void CancelCreating()
+        {
+            if(_firstAddedPoint != null)
+            {
+                MainCanvas.Children.Clear();
+                _firstAddedPoint = null;
+                _addingPoints.Clear();
+            }
+            _CurrentUserMode = CurrentUserModes.Viewing;
+        }
+
+        private void OnMovePoint_Click(object sender, RoutedEventArgs e)
+        {
+            _CurrentUserMode = CurrentUserModes.Moving;
+            EnterMoveMode();
+        }
+
+        private void EnterSetRadiusSizeMode()
+        {
+            foreach (var circle in _circles)
+            {
+                var sign = new ChangeRadiusSign(circle);
+                AddSignToForegroundWithLeftButtonAction(sign, SetRadiusClicked);
+            }
+        }
+
+        private void EnterSetEdgeLengthMode()
+        {
+            foreach (var poly in _polygons)
+            {
+                for(int i = 0; i < poly.Points.Count; ++i)
+                {
+                    var sign = new ChangeEdgeLengthSign(poly, i);
+                    AddSignToForegroundWithLeftButtonAction(sign, SetEdgeLengthClicked);
+                }
+            }
+        }
+
+        private void EnterPerpendicularEdgeStage1Mode()
+        {
+            foreach (var poly in _polygons)
+            {
+                for (int i = 0; i < poly.Points.Count; ++i)
+                {
+                    var sign = new MakeEdgesPerpendicularStage1Sign(poly, i);
+                    AddSignToForegroundWithLeftButtonAction(sign, PerpendicularStage1Clicked);
+                }
+            }
+        }
+
+        private void EnterPerpendicularEdgeStage2Mode(MakeEdgesPerpendicularStage1Sign chosenSign)
+        {
+            foreach (var poly in _polygons)
+            {
+                for (int i = 0; i < poly.Points.Count; ++i)
+                {
+                    var sign = new MakeEdgesPerpendicularStage2Sign(poly, i, chosenSign);
+                    AddSignToForegroundWithLeftButtonAction(sign, PerpendicularStage2Clicked);
+                }
+            }
+        }
+
+        
+
+        private void EnterTangentCircleSelectCircleMode()
+        {
+            foreach(var circle in _circles)
+            {
+                var sign = new MakeCircleTangentOnCircleSign(circle);
+                AddSignToForegroundWithLeftButtonAction(sign, SelectCircleToTangentClicked);
+            }
+        }
+
+        private void EnterTangentCircleSelectEdgeMode(Circle circle)
+        {
+            foreach(var poly in _polygons)
+            {
+                for(int i = 0; i < poly.Points.Count; ++i)
+                {
+                    var sign = new MakeTangentCircleOnEdgeSign(poly, i, circle);
+                    AddSignToForegroundWithLeftButtonAction(sign, SelectEdgeToTangentCircleClicked);
+                }
+            }
+        }
+
+        private void EnterDeleteMode()
+        {
+            EnterDeleteVerticesMode();
+            EnterDeleteShapesMode();
+        }
+
+        private void EnterDeleteVerticesMode()
+        {
+            foreach (var poly in _polygons)
+            {
+                if(poly.Points.Count > 3)
+                {
+                    for (int i = 0; i < poly.Points.Count; ++i)
+                    {
+                        var deleteSign = new DeleteVertexSign(poly, i);
+                        AddSignToForegroundWithLeftButtonAction(deleteSign, DeleteVertexClicked);
+                    }
+                }
+            }
+        }
+
+        private void EnterDeleteShapesMode()
+        {
+            EnterDeletePolyMode();
+            EnterDeleteCirclesMode();
+        }
+
+        private void EnterDeleteCirclesMode()
+        {
+            foreach (var circle in _circles)
+            {
+                var sign = new DeleteShapeSign(circle);
+                AddSignToForegroundWithLeftButtonAction(sign, DeleteShapeClicked);
+            }
+        }
+
+        private void EnterDeletePolyMode()
+        {
+            foreach(var poly in _polygons)
+            {
+                var sign = new DeleteShapeSign(poly);
+                AddSignToForegroundWithLeftButtonAction(sign, DeleteShapeClicked);
+            }
+        }
+
+        private void EnterSplitMode()
+        {
+            foreach (var poly in _polygons)
+            {
+                for(int i = 0; i < poly.Points.Count; ++i)
+                {
+                    var splitSign = new SplitSign(poly, i);
+                    AddSignToForegroundWithLeftButtonAction(splitSign, SplitSignClicked);
+                }
+            }
+        }
+
+        private void EnterEqualSideStage1()
+        {
+            foreach (var poly in _polygons)
+            {
+                for(int i = 0; i < poly.Points.Count; ++i)
+                {
+                    var equalEdgeSign = new EqualEdgeEmptySign(poly, i);
+                    AddSignToForegroundWithLeftButtonAction(equalEdgeSign, EqualEdgeStage1Clicked);
+                }
+            }
+        }
+
+        private void EnterEqualSideStage2(EqualEdgeEmptySign chosenEdge)
+        {
+            foreach (var poly in _polygons)
+            {
+                for(int i = 0; i < poly.Points.Count; ++i)
+                {
+                    if (poly == chosenEdge.Polygon && i == chosenEdge.EdgeNumber)
+                        continue;
+
+                    var equalEdgeSign = new EqualEdgeFilledSign(poly, i, chosenEdge);
+                    AddSignToForegroundWithLeftButtonAction(equalEdgeSign, EqualEdgeStage2Clicked);
+                }
+            }
+        }
+
+        private void EqualEdgeStage1Clicked(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not EqualEdgeEmptySign sign)
+                return;
+
+            ClearCanvasAndRedraw();
+            EnterEqualSideStage2(sign);
+        }
+
+        private void EqualEdgeStage2Clicked(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not EqualEdgeFilledSign sign)
+                return;
+
+            sign.SetThisEdgeToEqualFirst();
+            ClearCanvasAndRedraw();
+            EnterEqualSideStage1();
+        }
+
+        private void AddSignToForegroundWithLeftButtonAction(Sign sign, MouseButtonEventHandler handler)
+        {
+            sign.MouseLeftButtonDown += handler;
+            MainCanvas.Children.Add(sign);
+        }
+
+        private void SelectCircleToTangentClicked(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not MakeCircleTangentOnCircleSign sign)
+                return;
+
+            var circle = sign.Circle;
+
+            ClearCanvasAndRedraw();
+            EnterTangentCircleSelectEdgeMode(circle);
+        }
+
+        private void SelectEdgeToTangentCircleClicked(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not MakeTangentCircleOnEdgeSign sign)
+                return;
+
+            sign.AlignCircleToBeTangent();
+
+            ClearCanvasAndRedraw();
+            EnterTangentCircleSelectCircleMode();
+        }
+
+        private void SplitSignClicked(object sender, MouseButtonEventArgs e)
+        {
+            ClearCanvasAndRedraw();
+            EnterSplitMode();
+        }
+
+        private void DeleteVertexClicked(object sender, MouseButtonEventArgs e)
+        {
+            ClearCanvasAndRedraw();
+            EnterDeleteMode();
+        }
+
+        private void DeleteShapeClicked(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not DeleteShapeSign sign)
+                return;
+            
+            FindAndDeleteShape(sign.Shape);
+            ClearCanvasAndRedraw();
+            EnterDeleteMode();
+        }
+
+        private void FindAndDeleteShape(IMoveableShape shape)
+        {
+            foreach(var poly in _polygons)
+            {
+                if(Object.ReferenceEquals(poly, shape))
+                {
+                    _polygons.Remove(poly);
+                    return;
+                }
+            }
+
+            foreach(var circle in _circles)
+            {
+                if(Object.ReferenceEquals(circle, shape))
+                {
+                    _circles.Remove(circle);
+                    return;
+                }
+            }
+        }
+
+        private void SetRadiusClicked(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not ChangeRadiusSign sign)
+                return;
+
+            var dialog = new PickSizeDialog(sign.Circle.Radius)
+            {
+                Owner = this
+            };
+
+            bool? result = dialog.ShowDialog();
+            if (result == true)
+            {
+                sign.Circle.Radius = dialog.Size;
+                ClearCanvasAndRedraw();
+                EnterSetRadiusSizeMode();
+            }
+        }
+
+        private void PerpendicularStage1Clicked(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not MakeEdgesPerpendicularStage1Sign sign)
+                return;
+
+            ClearCanvasAndRedraw();
+            EnterPerpendicularEdgeStage2Mode(sign);
+        }
+
+        private void PerpendicularStage2Clicked(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not MakeEdgesPerpendicularStage2Sign sign)
+                return;
+
+            sign.MakeEdgePerpendicular();
+            ClearCanvasAndRedraw();
+            EnterPerpendicularEdgeStage1Mode();
+        }
+
+        private void SetEdgeLengthClicked(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not ChangeEdgeLengthSign sign)
+                return;
+
+            var length = sign.GetEdgeLength();
+            var dialog = new PickSizeDialog(length)
+            {
+                Owner = this
+            };
+
+            bool? result = dialog.ShowDialog();
+            if(result == true)
+            {
+                sign.Polygon.SetEdgeLength(sign.EdgeNumber, dialog.Size);
+                ClearCanvasAndRedraw();
+                EnterSetEdgeLengthMode();
+            }
+        }
+
+        private void ClearCanvasAndRedraw()
+        {
+            MainCanvas.Children.Clear();
+            RedrawBitmap();
+        }
+
+        private void OnFirstPoint_Click(object sender, RoutedEventArgs e)
+        {
+            e.Handled = true;
+            // if we have enough points we finish adding figure
+            if(_addingPoints.Count > 2)
+            {
+                var createdPoly = new Figures.Polygon(_addingPoints);
+                _polygons.Add(createdPoly);
+
+                var (points, colors) = _rasterizer.DrawPoly(createdPoly, Colors.Black);
+                _bitmap.DrawPixels(points, colors);
+
+                CancelCreating();
+            }
+            // throw some error
+            else
+            {
+
+            }
+        }
+
+        private void EnterMoveMode()
+        {
+            EnterMoveWholeMode();
+            EnterMoveVertexMode();
+            EnterMoveEdgesMode();
+        }
+
+        private void EnterMoveVertexMode()
+        {
+            for (int i = 0; i < _polygons.Count; i++)
+            {
+                for (int j = 0; j < _polygons[i].Points.Count; j++)
+                {
+                    var moveSign = new MoveVertexSign(_polygons[i], j);
+                    AddMoveSignToForeground(moveSign);
+                }
+            }
+        }
+
+        private void EnterMoveWholeMode()
+        {
+            EnterMoveWholePolyMode();
+            EnterMoveWholeCircleMode();
+        }
+
+        private void EnterMoveWholeCircleMode()
+        {
+            foreach (var circle in _circles)
+            {
+                var moveSign = new MoveWholeSign(circle);
+                AddMoveSignToForeground(moveSign);
+            }
+        }
+
+        private void EnterMoveWholePolyMode()
+        {
+            foreach (var poly in _polygons)
+            {
+                var moveSign = new MoveWholeSign(poly);
+                AddMoveSignToForeground(moveSign);
+            }
+        }
+
+        private void EnterMoveEdgesMode()
+        {
+            foreach(var poly in _polygons)
+            {
+                for(int i = 0; i < poly.Points.Count; i++)
+                {
+                    var moveSign = new MoveEdgeSign(poly, i);
+                    AddMoveSignToForeground(moveSign);
+                }
+            }
+        }
+
+        private void AddMoveSignToForeground(Sign sign)
+        {
+            sign.MouseLeftButtonDown += SelectSignToMove;
+            sign.MouseLeftButtonUp += DeselectSignToMove;
+
+            MainCanvas.Children.Add(sign);
+        }
+
+        private Sign? _selectedSign;
+
+        private void DeselectSignToMove(object sender, MouseButtonEventArgs e)
+        {
+            _selectedSign = null;
+        }
+
+        private void SelectSignToMove(object sender, MouseButtonEventArgs e)
+        {
+            _selectedSign = sender as Sign;
+        }
+
+        private void ClearForeground()
+        {
+            MainCanvas.Children.Clear();
+        }
+
+        private void PositionChanged(object sender, MouseEventArgs e)
+        {
+            if (sender is not IMoveableSign moveable)
+                return;
+
+            Point curPos = e.GetPosition(MainCanvas);
+            moveable.ChangePositionTo(new PointInt((int)curPos.X, (int)curPos.Y));
+            
+            ClearCanvasAndRedraw();
+            EnterMoveMode();
+        }
+
+        private void RedrawBitmap()
+        {
+            RedrawBitmapBackground();
+            RedrawPolies();
+            RedrawCircles();
+        }
+
+        private void RedrawBitmapBackground()
+        {
+            FillBitmapWithColor(_backgroundColor);
+        }
+
+        private void FillBitmapWithColor(Color color)
+        {
+            _bitmap.Clear(color);
+        }
+
+        private void RedrawPolies()
+        {
+            foreach (var poly in _polygons)
+            {
+                var (points, colors) = _rasterizer.DrawPoly(poly, Colors.Black);
+                _bitmap.DrawPixels(points, colors);
+            }
+        }
+
+        private void RedrawCircles()
+        {
+            foreach (var circle in _circles)
+            {
+                var (points, colors) = _rasterizer.DrawCircle(circle, Colors.Black);
+                _bitmap.DrawPixels(points, colors);
+            }
+        }
+
+        private void MainCanvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            if(_selectedSign != null)
+            {
+                Point currentPosition = e.GetPosition(MainCanvas);
+                if (_selectedSign is IMoveableSign moveable)
+                {
+                    var currentPositionInt = PointIntFactory.FromDoublePoint(currentPosition);
+                    moveable.ChangePositionTo(currentPositionInt);
+                    ClearForeground();
+                    RedrawBitmap();
+                    EnterMoveMode();
+                }
+            }
+        }
+
+        private void AddDefaultShapesToLists()
+        {
+            var letterM = DefaultSceneShapesProvider.GenerateLetterM(120, 180);
+            var letterI1 = DefaultSceneShapesProvider.GenerateLetterI(360, 200);
+            var letterN = DefaultSceneShapesProvider.GenerateLetterN(460, 260);
+            var letterI2 = DefaultSceneShapesProvider.GenerateLetterI(660, 200);
+
+            _polygons.Add(letterM);
+            _polygons.Add(letterI1);
+            _polygons.Add(letterN);
+            _polygons.Add(letterI2);
+
+            var circle1 = new Circle(new(370, 150), 80);
+            var circle2 = new Circle(new(670, 140), 30);
+
+            _circles.Add(circle1);
+            _circles.Add(circle2);
         }
     }
 }
+

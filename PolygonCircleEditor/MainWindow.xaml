@@ -5,16 +5,49 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PolygonCircleEditor"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Polygon Circle Editor" Height="670" Width="800" ResizeMode="NoResize">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="1*"/>
-            <RowDefinition Height="10*"/>
+            <RowDefinition Height="60"/>
+            <RowDefinition Height="600"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <StackPanel Orientation="Horizontal">
-            <Button>Dupa</Button>
+            <GroupBox Header="Create">
+                <StackPanel Orientation="Horizontal">
+                    <Button Click="AddPoly_Click">Polygon</Button>
+                    <Button Click="AddCircle_Click">Circle</Button>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Header="Remove">
+                <StackPanel Orientation="Horizontal">
+                    <Button Click="RemovePoints_Click">Points</Button>
+                    <Button IsEnabled="False">Relations</Button>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Header="Move">
+                <Button Click="OnMovePoint_Click">Points</Button>
+            </GroupBox>
+            <GroupBox Header="Split">
+                <Button Click="SplitPoints_Click">Edges</Button>
+            </GroupBox>
+            <GroupBox Header="Add Relations">
+                <StackPanel Orientation="Horizontal">
+                    <Button Click="SetEdgeSize_Click">Set Edge Length</Button>
+                    <Button Click="SetRadiusButton_Click">Set Radius</Button>
+                    <Button Click="EqualEdgeButton_Click">Equal Edge Lengths</Button>
+                    <Button Click="SetTangentCircle_Click">Tangent Circle</Button>
+                    <Button Click="PerpendicularEdgeButton_Click">Perpendicular Edge</Button>
+                </StackPanel>
+            </GroupBox>
         </StackPanel>
-        <Image x:Name="DisplayImage" Grid.Row="1" Height="300" Width="300">
-        </Image>
+        <DockPanel Grid.Row="1">
+            <Canvas DockPanel.Dock="Top" x:Name="MainCanvas" 
+                    MouseDown="MainCanvasMouseDown"
+                    MouseMove="MainCanvas_MouseMove"
+                    Background="HotPink" Width="800" Height="600">
+            </Canvas>
+        </DockPanel>
+        
     </Grid>
 </Window>

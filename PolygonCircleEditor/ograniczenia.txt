@@ -1,0 +1,12 @@
+﻿zadana długość krawędzi - ??????kaskadowo??????
+zadany promień okręgu - po prostu ustawienie i zablokowanie edycji promienia
+równe długość 2 krawędzi - łatwiej zablokować zadaną długość krawędzi,
+                            trudniej zmieniać długośc krawędzi po przesunięciu wierzchołka
+styczność krawędzi (prostej stanowiącej przedłużenie krawędzi) i okręgu - zmiana długości promienia aby przecinał się z funkcją przedłużenia odcinka
+krawędzie prostopadłe - łatwiej sprawdzanie kata na podstawie dwoch punktów i korzystanie z Math.Tan
+                        trudniej liczenie tylko i wyłącznie na podstawie a (chociaz moze nie tak trudniej to to samo powinoo byc)
+                        przy ruszaniu wierzcholka (albo dalszego wierzcholka) zmuszaj do przesuwania
+                        odpowiadajacej jemu krawedzi
+                        !! potencjalnie nie skonczona petla jesli beda po dwie 
+                        krawedzie prostopadle w dwoch wielokatach i pozostale beda mialy ustalona dlugosc
+                        

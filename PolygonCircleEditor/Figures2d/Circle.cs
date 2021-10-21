@@ -2,7 +2,7 @@
 
 namespace Figures2d
 {
-    public class Circle
+    public class Circle : IMoveableShape
     {
         public PointInt Point { get; set; }
         public uint Radius { get; set; }
@@ -17,5 +17,7 @@ namespace Figures2d
         {
             Point = new PointInt(Point.X + dx, Point.Y + dy);
         }
+
+        public PointInt GetMidPoint() => Point;
     }
 }

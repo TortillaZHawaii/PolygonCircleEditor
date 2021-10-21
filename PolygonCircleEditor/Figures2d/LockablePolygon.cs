@@ -19,7 +19,7 @@ namespace Figures2d
         public override void RemoveVertex(int vertexNumber)
         {
             // unlock neighbors
-            (int before, int after) = NeighborEdges(vertexNumber);
+            (int before, int after) = GetNeighborEdgesIndexes(vertexNumber);
             _lockedEdges[before] = false;
             // remove after unlocking neighbors to avoid problems with indexes
             _lockedEdges.RemoveAt(after);
@@ -41,7 +41,7 @@ namespace Figures2d
 
         public override void MoveVertex(int vertexNumber, int dx, int dy)
         {
-            (int before, int after) = NeighborEdges(vertexNumber);
+            (int before, int after) = GetNeighborEdgesIndexes(vertexNumber);
 
             // find first not locked edge to the left (decreasing indexes) and to the right (increasing)
             while(_lockedEdges[before] && before != after)
