@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace PolygonCircleEditor.Relations
 {
-    public abstract class CircleRelation : Relation
+    public abstract class Relation
     {
-        public abstract Figures2d.Circle Circle { get; init; }
+        public abstract void Adjust();
+        public abstract void CleanUp();
     }
 }

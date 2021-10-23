@@ -85,8 +85,8 @@ namespace Figures2d
                 if (circle.Point.X != line.B)
                     throw new Exception("Not colinear");
 
-                int y1 = circle.Point.Y + (int)circle.Radius;
-                int y2 = circle.Point.Y - (int)circle.Radius;
+                int y1 = circle.Point.Y - (int)circle.Radius;
+                int y2 = circle.Point.Y + (int)circle.Radius;
 
                 var p1 = new PointInt(circle.Point.X, y1);
                 var p2 = new PointInt(circle.Point.X, y2);

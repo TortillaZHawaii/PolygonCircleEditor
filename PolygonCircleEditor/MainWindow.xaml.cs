@@ -1,20 +1,19 @@
-﻿using System;
+﻿//#define RELATIONS
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Figures2d;
 using PolygonCircleEditor.Figures;
 using PolygonCircleEditor.Rasterizers;
+using PolygonCircleEditor.Relations;
+using PolygonCircleEditor.Relations.CircleRelations;
+using PolygonCircleEditor.Relations.EdgeRelations;
 using PolygonCircleEditor.Signs;
 
 namespace PolygonCircleEditor
@@ -68,6 +67,7 @@ namespace PolygonCircleEditor
             };
             _backgroundColor = Colors.Gainsboro;
             AddDefaultShapesToLists();
+            AdjustRelations();
             RedrawBitmap();
         }
 
@@ -570,6 +570,7 @@ namespace PolygonCircleEditor
 
         private void ClearCanvasAndRedraw()
         {
+            AdjustRelations();
             MainCanvas.Children.Clear();
             RedrawBitmap();
         }
@@ -597,6 +598,7 @@ namespace PolygonCircleEditor
 
         private void EnterMoveMode()
         {
+            AdjustRelations();
             EnterMoveWholeMode();
             EnterMoveVertexMode();
             EnterMoveEdgesMode();
@@ -750,11 +752,71 @@ namespace PolygonCircleEditor
             _polygons.Add(letterN);
             _polygons.Add(letterI2);
 
+
             var circle1 = new Circle(new(370, 150), 80);
             var circle2 = new Circle(new(670, 140), 30);
 
             _circles.Add(circle1);
             _circles.Add(circle2);
+#if RELATIONS
+            AddTangentRelation(letterI1, 0, circle1);
+            AddMGivenEdgeLength(letterM);
+            AddIPerpendicularEdges(letterI2);
+#endif
+        }
+
+        // experimental
+#if RELATIONS
+        private void AddMGivenEdgeLength(Figures.Polygon letterM)
+        {
+            for (int i = 0; i < letterM.Points.Count; i++)
+            {
+                letterM.SetRelation(i, new GivenEdgeLength(letterM, i, letterM.GetEdgeLength(i)));
+            }
+        }
+
+        private void AddTangentRelation(Figures.Polygon poly, int edgeNumber, Circle circle)
+        {
+            poly.Relations[edgeNumber]?.CleanUp();
+            circle.Relation?.CleanUp();
+            var t1 = new TangentCircle(circle);
+            var t2 = new TangentEdge(poly, edgeNumber, t1);
+            t1.TangentEdge = t2;
+
+            poly.SetRelation(edgeNumber, t2);
+            circle.Relation = t1;
+        }
+
+        private void AddIPerpendicularEdges(Figures.Polygon letterI)
+        {
+            var r1 = new PerpendicularEdge(letterI, 0);
+            var r2 = new PerpendicularEdge(letterI, 1, r1);
+            r2.SecondEdgeRelation = r1;
+
+            letterI.SetRelation(0, r1);
+            letterI.SetRelation(1, r2);
+        }
+#endif
+
+        private void AdjustRelations()
+        {
+#if RELATIONS
+            for (int i = 0; i < 1; i++)
+            {
+                foreach (var poly in _polygons)
+                {
+                    for (int j = 0; j < poly.Points.Count; ++j)
+                    {
+                        poly.Relations[j]?.Adjust();
+                    }
+                }
+
+                foreach (var circle in _circles)
+                {
+                    circle.Relation?.Adjust();
+                }
+            }
+#endif
         }
     }
 }

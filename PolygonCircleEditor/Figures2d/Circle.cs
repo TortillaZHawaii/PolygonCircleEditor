@@ -1,4 +1,5 @@
 ﻿using PolygonCircleEditor.Figures;
+using PolygonCircleEditor.Relations;
 
 namespace Figures2d
 {
@@ -6,6 +7,17 @@ namespace Figures2d
     {
         public PointInt Point { get; set; }
         public uint Radius { get; set; }
+
+        public CircleRelation? Relation 
+        { 
+            get => _relation;
+            set
+            {
+                _relation?.CleanUp();
+                _relation = value;
+            }
+        }
+        private CircleRelation? _relation;
 
         public Circle(PointInt point, uint radius)
         {

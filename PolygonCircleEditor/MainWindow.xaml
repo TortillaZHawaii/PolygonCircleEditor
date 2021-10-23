@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PolygonCircleEditor"
         mc:Ignorable="d"
-        Title="Polygon Circle Editor" Height="670" Width="800" ResizeMode="NoResize">
+        Title="Polygon Circle Editor" Height="695" Width="800" ResizeMode="NoResize">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="60"/>
@@ -21,8 +21,7 @@
             </GroupBox>
             <GroupBox Header="Remove">
                 <StackPanel Orientation="Horizontal">
-                    <Button Click="RemovePoints_Click">Points</Button>
-                    <Button IsEnabled="False">Relations</Button>
+                    <Button Click="RemovePoints_Click">Points and figures</Button>
                 </StackPanel>
             </GroupBox>
             <GroupBox Header="Move">
@@ -48,6 +47,14 @@
                     Background="HotPink" Width="800" Height="600">
             </Canvas>
         </DockPanel>
-        
+        <StackPanel Grid.Row="2" Orientation="Horizontal">
+            <TextBlock>
+                Hint: Press RMB to enter View Mode.
+            </TextBlock>
+            <Separator Width="440" Background="Transparent"/>
+            <TextBlock>
+                Author: Dawid Wysocki 305926
+            </TextBlock>
+        </StackPanel>
     </Grid>
 </Window>

@@ -5,16 +5,23 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using PolygonCircleEditor.Relations;
 
 namespace PolygonCircleEditor.Figures
 {
     public class Polygon : IMoveableShape
     {
         protected List<PointInt> _points;
+        protected List<EdgeRelation?> _relations;
+        public IReadOnlyList<PointInt> Points => _points;
+        public IReadOnlyList<EdgeRelation?> Relations => _relations;
 
         public Polygon(IEnumerable<PointInt> points)
         {
             _points = new List<PointInt>(points);
+
+            var prefilledRelations = new EdgeRelation?[_points.Count];
+            _relations = new List<EdgeRelation?>(prefilledRelations);
 
             if (_points.Count <= 2)
             {
@@ -22,7 +29,7 @@ namespace PolygonCircleEditor.Figures
             }
         }
 
-        public IReadOnlyList<PointInt> Points => _points;
+
 
         public PointInt GetMidEdgePoint(int edgeNumber)
         {
@@ -73,6 +80,11 @@ namespace PolygonCircleEditor.Figures
 
         public virtual void RemoveVertex(int vertexNumber)
         {
+            var (before, after) = GetNeighborEdgesIndexes(vertexNumber);
+            _relations[before]?.CleanUp();
+            _relations[after]?.CleanUp();
+            
+            _relations.RemoveAt(vertexNumber);
             _points.RemoveAt(vertexNumber);
         }
 
@@ -84,6 +96,8 @@ namespace PolygonCircleEditor.Figures
             int x = (p1.X + p2.X) / 2;
             int y = (p1.Y + p2.Y) / 2;
 
+            RemoveRelation(edgeNumber);
+            _relations.Insert(edgeNumber + 1, null);
             _points.Insert(edgeNumber + 1, new PointInt(x, y));
         }
 
@@ -114,13 +128,44 @@ namespace PolygonCircleEditor.Figures
             }
         }
 
-        public virtual void SetEdgeLength(int edgeNumber, uint size, bool fromFirstVertex=true)
+        public virtual void SetEdgeLengthFromMid(int edgeNumber, uint size)
+        {
+            // todo: clean up
+            var (before, after) = GetNeighborVertices(edgeNumber);
+            //var (dx, dy) = PointExtensions.ProlongDelta(before, after, size);
+
+            var midPoint = GetMidEdgePoint(edgeNumber);
+            var line = new Line(before, after);
+
+            var circle = new Circle(midPoint, size / 2);
+            var (p1, p2) = LineExtension.GetIntersectionOfColinearCircleAndLine(line, circle);
+
+            var (beforeIndex, afterIndex) = GetNeighborVerticesIndexes(edgeNumber);
+
+            var distance1 = PointExtensions.Distance(before, p1);
+            var distance2 = PointExtensions.Distance(before, p2);
+
+            if(distance1 <= distance2)
+            {
+                _points[beforeIndex] = p1;
+                _points[afterIndex] = p2;
+            }
+            else
+            {
+                _points[beforeIndex] = p2;
+                _points[afterIndex] = p1;
+            }
+        }
+
+        public virtual void SetEdgeLength(int edgeNumber, uint size, int startingVertex=-1)
         {
             // todo: clean up
             var (before, after) = GetNeighborVerticesIndexes(edgeNumber);
 
-            int vertexIndexToStay = fromFirstVertex ? before : after;
-            int vertexIndexToMove = fromFirstVertex ? after : before;
+            bool isAfterStartingVertex = startingVertex == after;
+
+            int vertexIndexToStay = !isAfterStartingVertex ? before : after;
+            int vertexIndexToMove = !isAfterStartingVertex ? after : before;
 
             var vertexToStay = _points[vertexIndexToStay];
             var vertexToMove = _points[vertexIndexToMove];
@@ -165,6 +210,22 @@ namespace PolygonCircleEditor.Figures
             var (_, afterPoint) = LineExtension.GetIntersectionOfColinearCircleAndLine(perpendicularLine, circle);
 
             _points[afterIndex] = afterPoint;
+        }
+
+        public void SetRelation(int edgeNumber, EdgeRelation relation)
+        {
+            RemoveRelation(edgeNumber);
+            _relations[edgeNumber] = relation;
+        }
+
+        public void RemoveRelation(int edgeNumber)
+        {
+            _relations[edgeNumber]?.CleanUp();
+        }
+
+        public void NullifyRelation(int edgeNumber)
+        {
+            _relations[edgeNumber] = null;
         }
     }
 }
