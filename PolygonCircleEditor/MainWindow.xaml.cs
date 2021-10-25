@@ -58,7 +58,7 @@ namespace PolygonCircleEditor
         public MainWindow()
         {
             InitializeComponent();
-            _rasterizer = new BresenhamRasterizer();
+            _rasterizer = new ThickRasterizer(new BresenhamRasterizer(), 0);
             _bitmap = new ViewModelBitmap((int)MainCanvas.Width, (int)MainCanvas.Height);
             MainCanvas.Background = new ImageBrush()
             {
@@ -192,8 +192,8 @@ namespace PolygonCircleEditor
                 var createdCircle = new Circle(_addingPoints[0], radius);
                 _circles.Add(createdCircle);
 
-                var (points, colors) = _rasterizer.DrawCircle(createdCircle, Colors.Black);
-                _bitmap.DrawPixels(points, colors);
+                var pixels = _rasterizer.DrawCircle(createdCircle, Colors.Black);
+                _bitmap.DrawPixels(pixels);
 
                 CancelCreating();
             }
@@ -584,8 +584,8 @@ namespace PolygonCircleEditor
                 var createdPoly = new Figures.Polygon(_addingPoints);
                 _polygons.Add(createdPoly);
 
-                var (points, colors) = _rasterizer.DrawPoly(createdPoly, Colors.Black);
-                _bitmap.DrawPixels(points, colors);
+                var pixels = _rasterizer.DrawPoly(createdPoly, Colors.Black);
+                _bitmap.DrawPixels(pixels);
 
                 CancelCreating();
             }
@@ -710,8 +710,8 @@ namespace PolygonCircleEditor
         {
             foreach (var poly in _polygons)
             {
-                var (points, colors) = _rasterizer.DrawPoly(poly, Colors.Black);
-                _bitmap.DrawPixels(points, colors);
+                var pixels = _rasterizer.DrawPoly(poly, Colors.Black);
+                _bitmap.DrawPixels(pixels);
             }
         }
 
@@ -719,8 +719,8 @@ namespace PolygonCircleEditor
         {
             foreach (var circle in _circles)
             {
-                var (points, colors) = _rasterizer.DrawCircle(circle, Colors.Black);
-                _bitmap.DrawPixels(points, colors);
+                var pixels = _rasterizer.DrawCircle(circle, Colors.Black);
+                _bitmap.DrawPixels(pixels);
             }
         }
 

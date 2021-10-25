@@ -1,5 +1,25 @@
 ﻿UWAGA: Program z relacjami działał bardzo niestabilnie, więc domyślnie są one wyłączone.
 
+Jak edytować:
+    Tworzenie:
+        - Wielokąt - klikamy w miejscach w których chcemy mieć wierzchołki, ponowne kliknięcie pierwszego wierzchołka zakończy tworzenie.
+        - Okrąg - pierwsze kliknięcie ustala środek okręgu, drugie promień.
+    Usuwanie:
+        - Wąski krzyżyk - usuwa wierzchołek.
+        - Gruby krzyżyk - usuwa figurę.
+    Poruszanie (drag and drop):
+        - Romb - przesuwa wierzchołek.
+        - Okrąg - przesuwa krawędź.
+        - Gwiazdka - przesuwa całą figurę.
+    Rozdzielanie:
+        - Kliknięcie na zieloną ikonę rozdzieli krawędź na dwie równe.
+    Relacje:
+        - Ustalanie długości - najpierw wybieramy krawędź, następnie w dialogu wpisujemy nową wartość całkowitą.
+        - Ustalanie promienia - jak wyżej, z okręgiem.
+        - Równe długości dwóch krawędzi - pierwsze kliknięcie pobiera długość, drugie ustawia ją.
+        - Styczność okręgu - najpierw klikamy na okrąg, następnie na krawędź.
+        - Prostopadłość - najpierw wybieramy do której krawędzi będziemy ustawiać się prostopadle, w drugim kliknięciu wybieramy krawędź która zostanie ustawiona prostopadle.
+
 Przyciski w buttonboxie Add Relations zmieniają figury tak aby ta zależność była spełniona, lecz nie pozostawiają relacji w pamięci tzn. po przesunięciu krawędzi ustalonych prostopadle nie pozostaną one prostopadłe.
 
 Relacje mogą zostać włączone poprzez zdefiniowanie flagi preprocesora RELATIONS w pliku MainWindow.xaml.cs (piersza linia). Zostaną wtedy domyślnie ustawione relacje:

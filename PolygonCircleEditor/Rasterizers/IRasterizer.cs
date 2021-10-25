@@ -11,8 +11,8 @@ namespace PolygonCircleEditor.Rasterizers
 {
     public interface IRasterizer
     {
-        public (List<PointInt> points, List<Color> colors) DrawLine(PointInt start, PointInt end, Color color);
-        public (List<PointInt> points, List<Color> colors) DrawPoly(Polygon poly, Color color);
-        public (List<PointInt> points, List<Color> colors) DrawCircle(Circle circle, Color color);
+        public List<Pixel> DrawLine(PointInt start, PointInt end, Color color);
+        public List<Pixel> DrawPoly(Polygon poly, Color color);
+        public List<Pixel> DrawCircle(Circle circle, Color color);
     }
 }

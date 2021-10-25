@@ -11,10 +11,10 @@ namespace PolygonCircleEditor.Rasterizers
 {
     public class BresenhamRasterizer : IRasterizer
     {
-        public (List<PointInt> points, List<Color> colors) DrawCircle(Circle circle, Color color)
+        // adapted from lectures
+        public List<Pixel> DrawCircle(Circle circle, Color color)
         {
-            var points = new List<PointInt>();
-            var colors = new List<Color>();
+            var pixels = new List<Pixel>();
 
             int cX = circle.Point.X;
             int cY = circle.Point.Y;
@@ -26,23 +26,14 @@ namespace PolygonCircleEditor.Rasterizers
             int x = 0;
             int y = r;
 
-            points.Add(new PointInt(x + cX, y + cY));
-            points.Add(new PointInt(y + cX, -x + cY));
-            points.Add(new PointInt(-x + cX, -y + cY));
-            points.Add(new PointInt(-y + cX, x + cY));
-            points.Add(new PointInt(y + cX, x + cY));
-            points.Add(new PointInt(x + cX, -y + cY));
-            points.Add(new PointInt(-y + cX, -x + cY));
-            points.Add(new PointInt(-x + cX, y + cY));
-
-            colors.Add(color);
-            colors.Add(color);
-            colors.Add(color);
-            colors.Add(color);
-            colors.Add(color);
-            colors.Add(color);
-            colors.Add(color);
-            colors.Add(color);
+            pixels.Add(new(new PointInt(x + cX, y + cY), color));
+            pixels.Add(new(new PointInt(y + cX, -x + cY), color));
+            pixels.Add(new(new PointInt(-x + cX, -y + cY), color));
+            pixels.Add(new(new PointInt(-y + cX, x + cY), color));
+            pixels.Add(new(new PointInt(y + cX, x + cY), color));
+            pixels.Add(new(new PointInt(x + cX, -y + cY), color));
+            pixels.Add(new(new PointInt(-y + cX, -x + cY), color));
+            pixels.Add(new(new PointInt(-x + cX, y + cY), color));
 
             while (y > x)
             {
@@ -61,32 +52,23 @@ namespace PolygonCircleEditor.Rasterizers
                 }
                 x++;
 
-                points.Add(new PointInt(x + cX, y + cY));
-                points.Add(new PointInt(y + cX, -x + cY));
-                points.Add(new PointInt(-x + cX, -y + cY));
-                points.Add(new PointInt(-y + cX, x + cY));
-                points.Add(new PointInt(y + cX, x + cY));
-                points.Add(new PointInt(x + cX, -y + cY));
-                points.Add(new PointInt(-y + cX, -x + cY));
-                points.Add(new PointInt(-x + cX, y + cY));
-
-                colors.Add(color);
-                colors.Add(color);
-                colors.Add(color);
-                colors.Add(color);
-                colors.Add(color);
-                colors.Add(color);
-                colors.Add(color);
-                colors.Add(color);
+                pixels.Add(new(new PointInt(x + cX, y + cY), color));
+                pixels.Add(new(new PointInt(y + cX, -x + cY), color));
+                pixels.Add(new(new PointInt(-x + cX, -y + cY), color));
+                pixels.Add(new(new PointInt(-y + cX, x + cY), color));
+                pixels.Add(new(new PointInt(y + cX, x + cY), color));
+                pixels.Add(new(new PointInt(x + cX, -y + cY), color));
+                pixels.Add(new(new PointInt(-y + cX, -x + cY), color));
+                pixels.Add(new(new PointInt(-x + cX, y + cY), color));
             }
 
-            return (points, colors);
+            return pixels;
         }
 
-        public (List<PointInt> points, List<Color> colors) DrawLine(PointInt start, PointInt end, Color color)
+        // adapted from stackoverflow
+        public List<Pixel> DrawLine(PointInt start, PointInt end, Color color)
         {
-            var points = new List<PointInt>();
-            var colors = new List<Color>();
+            var pixels = new List<Pixel>();
 
             int x = start.X;
             int y = start.Y;
@@ -111,8 +93,7 @@ namespace PolygonCircleEditor.Rasterizers
             int numerator = longest >> 1;
             for (int i = 0; i <= longest; i++)
             {
-                points.Add(new PointInt(x, y));
-                colors.Add(color);
+                pixels.Add(new(x, y, color));
 
                 numerator += shortest;
                 if (!(numerator < longest))
@@ -128,24 +109,22 @@ namespace PolygonCircleEditor.Rasterizers
                 }
             }
 
-            return (points, colors);
+            return pixels;
         }
 
-        public (List<PointInt> points, List<Color> colors) DrawPoly(Polygon poly, Color color)
+        public List<Pixel> DrawPoly(Polygon poly, Color color)
         {
-            var completePoints = new List<PointInt>();
-            var completeColors = new List<Color>();
+            var completePixels = new List<Pixel>();
 
             for(int i = 0; i < poly.Points.Count; ++i)
             {
                 var start = poly.Points[i];
                 var end = poly.Points[(i + 1) % poly.Points.Count];
-                var (points,  colors) = DrawLine(start, end, color);
-                completePoints.AddRange(points);
-                completeColors.AddRange(colors);
+                var pixels = DrawLine(start, end, color);
+                completePixels.AddRange(pixels);
             }
 
-            return (completePoints, completeColors);
+            return completePixels;
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using PolygonCircleEditor.Figures;
+using PolygonCircleEditor.Rasterizers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,12 +23,34 @@ namespace PolygonCircleEditor
 
         public void DrawPixel(int x, int y, Color? color = null)
         {
-            var colors = new List<Color>();
-            if (color != null)
-                colors.Add(color.Value);
-            else
-                colors.Add(Colors.Black);
-            DrawPixels(new[] { new PointInt(x, y) }, colors);
+            Color nonNullableColor = color ?? Colors.Black;
+            var pixel = new Pixel(x, y, nonNullableColor);
+            
+            DrawPixels(new List<Pixel>() { pixel });
+        }
+
+        public Color GetPixelColor(int x, int y)
+        {
+            unsafe
+            {
+                IntPtr pBackBuffer = WriteableBitmap.BackBuffer;
+
+                pBackBuffer += y * WriteableBitmap.BackBufferStride + x * 4;
+
+                //int colorData = color.R << 16;
+                //colorData |= color.G << 8;
+                //colorData |= color.B << 0;
+
+                int colorData = *(int*)pBackBuffer;
+
+                byte red = (byte)((colorData >> 16) & 0xFF);
+                byte green = (byte)((colorData >> 8) & 0xFF);
+                byte blue = (byte)((colorData >> 0) & 0xFF);
+
+                var color = Color.FromRgb(red, green, blue);
+                
+                return color;
+            }
         }
 
         /// <summary>
@@ -59,13 +82,12 @@ namespace PolygonCircleEditor
             return new Int32Rect(0, 0, WriteableBitmap.PixelWidth, WriteableBitmap.PixelHeight);
         }
 
-        private Int32Rect _UnsafeDraw(IEnumerable<PointInt> pixels, List<Color> colors)
+        private Int32Rect _UnsafeDraw(IEnumerable<Pixel> pixels)
         {
             int maxX = 0,
                 maxY = 0,
                 minX = WriteableBitmap.PixelWidth,
                 minY = WriteableBitmap.PixelHeight;
-            int i = 0;
 
             foreach (var pixel in pixels)
             {
@@ -79,7 +101,7 @@ namespace PolygonCircleEditor
 
                     pBackBuffer += pixel.Y * WriteableBitmap.BackBufferStride + pixel.X * 4;
 
-                    Color color = colors[i];
+                    Color color = pixel.Color;
 
                     int colorData = color.R << 16;
                     colorData |= color.G << 8;
@@ -98,12 +120,12 @@ namespace PolygonCircleEditor
             return new Int32Rect(minX, minY, maxX - minX + 1, maxY - minY + 1);
         }
 
-        public void DrawPixels(IEnumerable<PointInt> pixels, List<Color> colors)
+        public void DrawPixels(IEnumerable<Pixel> pixels)
         {
             try
             {
                 WriteableBitmap.Lock();
-                var dirtyRect = _UnsafeDraw(pixels, colors);
+                var dirtyRect = _UnsafeDraw(pixels);
                 WriteableBitmap.AddDirtyRect(dirtyRect);
             }
             finally
@@ -112,13 +134,13 @@ namespace PolygonCircleEditor
             }
         }
 
-        public void RedrawPixels(IEnumerable<PointInt> pixels, List<Color> colors)
+        public void RedrawPixels(IEnumerable<Pixel> pixels)
         {
             try
             {
                 WriteableBitmap.Lock();
                 var dirtyRect = _UnsafeClear();
-                _UnsafeDraw(pixels, colors);
+                _UnsafeDraw(pixels);
                 WriteableBitmap.AddDirtyRect(dirtyRect);
             }
             finally
